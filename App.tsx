@@ -1,20 +1,65 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from "react";
+import { View } from "react-native";
+import { NavigationContainer } from '@react-navigation/native';
+import AppLoading from 'expo-app-loading';
+import { useFonts } from 'expo-font';
+import FlashMessage from "react-native-flash-message";
+import { LoadDarkModeState, SaveDarkModeState } from "./src/components/getStorage";
 
-export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
+import { darkTheme, lightTheme, ThemeContext, SectionContext } from './src/components/providers';
+import { ThemeProps } from "./src/types";
+import Sidebar from './src/components/sidebar';
+
+const App = () => {
+  const [currentTheme, setCurrentTheme] = useState<ThemeProps>(lightTheme);
+  const [currentSection, setCurrentSection] = useState<string>("null");
+
+  const [fontsLoaded] = useFonts({
+    'Montserrat Light': require('./assets/fonts/Montserrat-Light.ttf'),
+    'Montserrat Medium': require('./assets/fonts/Montserrat-Medium.ttf'),
+    'Montserrat Regular': require('./assets/fonts/Montserrat-Regular.ttf'),
+    'Montserrat SemiBold': require('./assets/fonts/Montserrat-SemiBold.ttf'),
+  });
+
+  FlashMessage.setColorTheme({
+    success: '#6ab04c',
+    info: '#686de0',
+    warning: '#eb4d4b'
+  });
+
+  const SwitchTheme = async () => {
+    setCurrentTheme(currentTheme === lightTheme ? darkTheme : lightTheme);
+    await SaveDarkModeState(currentTheme === darkTheme);
+  }
+  const SwitchSection = (newSection: string) => setCurrentSection(newSection);
+
+  useEffect(() => {
+    LoadDarkModeState().then(loaded => {
+      setCurrentTheme(loaded ? darkTheme : lightTheme);
+    });
+  })
+
+  if (!fontsLoaded) return (<AppLoading />)
+  else {
+    return (
+      <View style={{ flex: 1 }}>
+        <ThemeContext.Provider value={{
+          theme: currentTheme,
+          change: SwitchTheme
+        }}>
+          <SectionContext.Provider value={{
+            currentSection: currentSection,
+            changeSection: SwitchSection
+          }}>
+            <NavigationContainer>
+              <Sidebar />
+            </NavigationContainer>
+            <FlashMessage position="bottom" />
+          </SectionContext.Provider>
+        </ThemeContext.Provider>
+      </View>
+    )
+  }
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default App;
